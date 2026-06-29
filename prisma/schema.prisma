@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GroupRole {
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
+
+  groupsCreated Group[] @relation("CreatedGroups")
+
+  groupMembers GroupMember[]
+
+  expensesPaid Expense[] @relation("PaidExpenses")
+
+  expenseSplits ExpenseSplit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Group {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  createdBy Int
+
+  creator User @relation("CreatedGroups", fields: [createdBy], references: [id])
+
+  groupMembers GroupMember[]
+
+  expenses Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GroupMember {
+  groupId Int
+  userId  Int
+
+  role GroupRole @default(MEMBER)
+
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([groupId, userId])
+}
+
+model Expense {
+  id Int @id @default(autoincrement())
+
+  description String
+
+  amount Float
+
+  groupId Int
+
+  paidBy Int
+
+  group Group @relation(fields: [groupId], references: [id])
+
+  payer User @relation("PaidExpenses", fields: [paidBy], references: [id])
+
+  splits ExpenseSplit[]
+
+  createdAt DateTime @default(now())
+}
+
+model ExpenseSplit {
+  expenseId Int
+
+  userId Int
+
+  amount Float
+
+  expense Expense @relation(fields: [expenseId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([expenseId, userId])
+}

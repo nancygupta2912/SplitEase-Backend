@@ -15,7 +15,9 @@ const signup = async (userData) => {
   });
 
   if (existingUser){
-  throw new Error("User with this email already exists");
+    const error = new Error("User with this email already exists");
+    error.status = 409;
+    throw error;
   }
 
   const hashedPassword=await bcrypt.hash(password,10);
@@ -40,42 +42,58 @@ const signup = async (userData) => {
 
 
 
-const login=async(userData)=>{
-  const  {email,password}=userData;
-  const user=await prisma.user.findUnique({
-    where:{email}
-  });
 
-  if(!user) {
-    throw new Error("Invalid email or password");
-  }
+const login = async (userData) => {
 
-  const isMatch=await bcrypt.compare(password,user.password);
-  if(!isMatch){
-    throw new Error("Invalid email or password");
-  }
+    const { email, password } = userData;
 
-  const token=jwt.sign(
-    {
-      id:user.id,
-      email:user.email
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn:'1h'
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+
+        const error = new Error("User not found");
+        error.status = 404;
+        throw error;
+
     }
-  );
 
-  return {
-    message:"Login Successful",
-    token,
-    user:{
-      id:user.id,
-      name:user.name,
-      email:user.email
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+
+        const error = new Error("Invalid password");
+        error.status = 401;
+        throw error;
+
     }
-  };
-}
+
+    const token = jwt.sign(
+        {
+            id: user.id,
+            email: user.email
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: "1h"
+        }
+    );
+
+    return {
+        message: "Login Successful",
+        token,
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email
+        }
+    };
+};
+
+
+
+
 
 
 
